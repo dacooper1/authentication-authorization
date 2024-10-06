@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %} Register {% endblock %}
+{% block content %}
+
+<h1>Register</h1>
+
+<div>
+    {% with messages = get_flashed_messages(with_categories=True) %}
+    {% if messages %}
+        <ul class="flashes">
+            {% for category, message in messages %}
+                <li class="{{ category }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    {% endwith %}
+</div>
+
+<div>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+
+        {% for field in form 
+            if field.widget.input_type != 'hidden'
+            %}
+
+            <p>
+                {{field.label}}
+                {{field}}
+    
+                {% for error in field.errors %}
+                    <span class="form-error">{{error}}</span>
+                {% endfor %}
+            </p>
+        {% endfor %}
+        <button> Create Account </button>
+    </form>
+</div>
+
+{% endblock %}

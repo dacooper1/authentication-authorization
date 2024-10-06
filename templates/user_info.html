@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block title %} {{ user.username }}'s Profile {% endblock %}
+
+{% block content %}
+
+<h1> {{ user.username }} </h1>
+    <ul class="user-container">
+        <li> {{ user.first_name }} {{ user.last_name }}</li>
+        <li> {{ user.email }} </li>
+        <form action="/users/{{ user.username }}/delete" method="POST" style="display:inline;">
+            <button type="submit"><b>Delete User</b></button>
+        </form>
+    </ul>
+
+<h2> Feedback </h2>
+    <ul>
+        <li>
+            
+        </li>
+    </ul>
+{% endblock %}
