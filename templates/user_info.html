@@ -5,6 +5,7 @@
 {% block content %}
 
 <h1> {{ user.username }} </h1>
+<button><b><a href="/logout"> logout </a></b></button>
     <ul class="user-container">
         <li> {{ user.first_name }} {{ user.last_name }}</li>
         <li> {{ user.email }} </li>
@@ -13,10 +14,33 @@
         </form>
     </ul>
 
-<h2> Feedback </h2>
-    <ul>
-        <li>
-            
+<h2> Feedback From Peers </h2>
+<button><b><a href="/users/{{user.username}}/feedback/add"> Add Feedback</a></b></button>
+<ul>
+    {% for feedback in user.feedback %}
+
+        <li id="{{ feedback.username }}">
+            <b> {{ feedback.title }} - </b> 
+        <small>{{ feedback.content }}</small>
         </li>
-    </ul>
+
+        {% if feedback.username == session.get('user') %}
+        <form>
+            {{form.hidden_tag()}}
+            <button class="btn btn-primary"
+                    formmethod="GET"
+                    formaction="/feedback/{{ feedback.id }}/update">
+              Edit
+            </button>
+            <button class="btn btn-danger"
+                    formmethod="POST"
+                    formaction="/feedback/{{ feedback.id }}/delete">
+              Delete
+            </button>
+          </form>
+          {% endif %}
+    {%  endfor %}
+</ul>
+
+
 {% endblock %}

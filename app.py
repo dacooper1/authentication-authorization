@@ -1,8 +1,8 @@
 
 from flask import Flask, redirect, render_template, session, flash
 from flask_debugtoolbar import DebugToolbarExtension
-from forms import RegisterForm, LoginForm
-from models import db, connect_db, User
+from forms import RegisterForm, LoginForm, FeedbackForm, DeleteForm
+from models import db, connect_db, User, Feedback
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///aa'
@@ -82,7 +82,7 @@ def secret():
 @app.route('/logout')
 def logout():
     session.pop('user', None)
-    return redirect('/')
+    return redirect('/login')
 
 # GET /users/<username> : Display a template the shows information about that user (everything except for their password). You should ensure that only logged in users can access this page.
 # **GET */users/<username> :*** Show information about the given user. Show all of the feedback that the user has given. For each piece of feedback, display with a link to a form to edit the feedback and a button to delete the feedback. Have a link that sends you to a form to add more feedback and a button to delete the user **Make sure that only the user who is logged in can successfully view this page.**
@@ -93,21 +93,24 @@ def user_info(username):
     if not user:
         flash(f"User does not exist, please register")
         return redirect('/register')
-    elif not session.get('user') or session['user'] != user.username:
-        flash(f"Please login to {user.username}'s profile view this page", "warning")
+    elif not session.get('user'): 
+        flash(f"Please login to view {user.username}'s profile", "warning")
+        session.pop('user', None)
         return redirect('/login')
     else:
-        return render_template('/user_info.html', user=user)
-
+        form = DeleteForm()
+        return render_template('/user_info.html', user=user, form=form)
+    
+# **POST *'/users/<username>/delete' :*** Remove the user from the database and make sure to also delete all of their feedback. Clear any user information in the session and redirect to ***/***. **Make sure that only the user who is logged in can successfully delete their account.**
 @app.route('/users/<username>/delete', methods=['POST'])
 def delete_user(username):
     user = User.query.filter_by(username=username).first()
-    print(user)
     if not user:
         flash(f"User does not exist, please register")
         return redirect('/register')
     elif not session.get('user') or session['user'] != user.username:
         flash(f"Please login to delete your profile", "warning")
+        session.pop('user', None)
         return redirect('/login')
     else:
         db.session.delete(user)
@@ -115,14 +118,75 @@ def delete_user(username):
         session.pop('user', None)
     return redirect('/')
 
-# **POST *'/users/<username>/delete' :*** Remove the user from the database and make sure to also delete all of their feedback. Clear any user information in the session and redirect to ***/***. **Make sure that only the user who is logged in can successfully delete their account.**
-
 # **GET */users/<username>/feedback/add :*** Display a form to add feedback  **Make sure that only the user who is logged in can see this form.**
-
 # **POST */users/<username>/feedback/add :*** Add a new piece of feedback and redirect to /users/<username> — **Make sure that only the user who is logged in can successfully add feedback.**
+
+@app.route('/users/<username>/feedback/add', methods=["GET", "POST"])
+def add_feedback(username):
+    form = FeedbackForm()
+    user = User.query.filter_by(username=username).first()
+
+    if not session.get('user'):
+        flash("Please login to submit feedback", "warning")
+        session.pop('user', None)
+        return redirect('/login')
+
+    else:
+        if form.validate_on_submit():
+            title = form.title.data
+            content = form.content.data
+            feedback = Feedback(title=title, content=content, username=user.username)
+
+            db.session.add(feedback)
+            db.session.commit()
+
+            return redirect(f"/users/{user.username}")
+        
+        else:
+            return render_template('add_feedback.html', form=form, user=username)
+
 
 # **GET */feedback/<feedback-id>/update :*** Display a form to edit feedback — [**](https://curric.springboard.com/software-engineering-career-track/default/exercises/flask-feedback/index.html#id1)Make sure that only the user who has written that feedback can see this form **
 
 # **POST */feedback/<feedback-id>/update :*** Update a specific piece of feedback and redirect to /users/<username> — **Make sure that only the user who has written that feedback can update it.**
+        
+@app.route('/feedback/<int:feedback_id>/update', methods=["GET", "POST"])
+def update_feedback(feedback_id):
+    feedback = Feedback.query.get(feedback_id)
+    form = FeedbackForm(obj=feedback)
+    
+
+    if not session['user'] or feedback.username != session['user']:
+        flash("Please login to update your feedback")
+        session.pop('user', None)
+        return redirect('/login')
+
+    if form.validate_on_submit():
+        feedback.title = form.title.data
+        feedback.content = form.content.data
+
+        db.session.commit()
+
+        return redirect(f"/users/{feedback.username}")
+
+    return render_template("edit_feedback.html", form=form, feedback=feedback)
 
 # **POST */feedback/<feedback-id>/delete :*** Delete a specific piece of feedback and redirect to /users/<username> — **Make sure that only the user who has written that feedback can delete it.**
+
+@app.route("/feedback/<int:feedback_id>/delete", methods=["POST"])
+def delete_feedback(feedback_id):
+    """Delete feedback."""
+
+    feedback = Feedback.query.get(feedback_id)
+    if not session.get('user') or feedback.username != session['user']:
+        flash("Please login to delete your feedback")
+        session.pop('user', None)
+        return redirect('/login')
+
+    form = DeleteForm()
+
+    if form.validate_on_submit():
+        db.session.delete(feedback)
+        db.session.commit()
+
+    return redirect(f"/users/{feedback.username}")

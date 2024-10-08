@@ -42,7 +42,7 @@ class User(db.Model):
 
     password = db.Column(db.String, nullable=False)
 
-    feedback = db.relationship('Feedback', backref='user', cascade='all, delete')
+    feedback = db.relationship('Feedback', backref='users', cascade='all, delete')
 
 
     def __repr__(self):
@@ -60,7 +60,7 @@ class Feedback(db.Model):
     title = db.Column(db.String(100), nullable=False)
     content = db.Column(db.String, nullable=False)
 
-    username = db.Column(db.Integer, db.ForeignKey('users.username'), nullable=False)
+    username = db.Column(db.String(20), db.ForeignKey('users.username'), nullable=False)
 
 
     
